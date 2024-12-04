@@ -13,10 +13,10 @@
   - Register Page: This page registers new user and add it in the MongoDB.
   - Login Page : This page authenticates user by validating email and password against MongoDB. Here, after successful login Flask app creates JWT token which is being used across the application to validate current user.
   - Dashboard Page: After successful login, user lands on dashboard page where user can view the links based on their role as given below:
-        # For User Role: 
-            * Edit User: User can update their existing details.
-            * Add Message: User can post messages and view on the same page.
-        # For Admin Role:
+    - For User Role: 
+      * Edit User: User can update their existing details.
+      * Add Message: User can post messages and view on the same page.
+     # For Admin Role:
             * Manage User: Admin can edit and delete user.
             * Filter: Admin can search any username or email and role by using the search filter functionality. 
         # For Moderator Role:
