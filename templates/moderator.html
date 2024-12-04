@@ -1,0 +1,28 @@
+{% extends "index.html" %}
+{% block content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='moderator.css') }}">
+<div class="navbar">
+        <h1>Moderator Panel</h1>
+</div>
+
+  <table class="activity-log">
+    <thead>
+        <tr>
+            <th>Timestamp</th>
+            <th>Username</th>
+            <th>Activity</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for activity in activities %}
+        <tr>
+            <td>{{ activity.timestamp }}</td>
+            <td>{{ activity.username }}</td>
+            <td>{{ activity.alert }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}
+
+

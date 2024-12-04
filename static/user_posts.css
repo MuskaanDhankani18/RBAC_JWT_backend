@@ -1,0 +1,35 @@
+.user-posts {
+    padding: 20px;
+    background-color: #f8f9fa;
+}
+
+.user-section {
+    margin-bottom: 20px;
+    border: 1px solid #ccc;
+    padding: 10px;
+    border-radius: 5px;
+    background-color: #fff;
+}
+
+.user-section h3 {
+    margin-top: 0;
+}
+
+.user-section ul {
+    list-style: none;
+    padding: 0;
+}
+
+.user-section ul li {
+    padding: 5px 0;
+    border-bottom: 1px solid #ddd;
+}
+
+.user-section ul li:last-child {
+    border-bottom: none;
+}
+
+.user-section p {
+    font-style: italic;
+    color: #666;
+}

@@ -1,0 +1,160 @@
+{% extends "index.html" %}
+{% block content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='admin.css') }}">
+<div class="navbar">
+   <h1>Manage Profile</h1>
+</div>
+
+<div class="user-card">
+    <h3>User Details</h3>
+    <p>Username: {{ user['username'] }}</p>
+    <p>Email: {{ user['email'] }}</p>
+    <p>Role: {{ user['role'] }}</p>
+    <button onclick="toggleEditForm('{{ user['_id'] }}')">Edit</button>
+    <button onclick="toggleAddMessageForm('{{ user['_id'] }}')">Add Message</button>
+</div>
+
+<!-- Hidden form for editing user -->
+<form id="edit-form-{{ user['_id'] }}"
+      style="display: none;"
+      onsubmit="return editUser(event, '{{ user['_id'] }}')">
+    <label for="email">Email:</label>
+    <input type="text" name="email" value="{{ user['email'] }}">
+    <label for="role">Username:</label>
+    <input type="text" name="username" value="{{ user['username'] }}">
+    <button type="submit">Update</button>
+    <button type="button" onclick="cancelEdit('{{ user['_id'] }}')">Cancel</button>
+</form>
+
+<!-- Hidden form for adding messages -->
+<form id="add-message-{{ user['_id'] }}"
+      style="display: none;"
+      onsubmit="return addMessage(event, '{{ user['_id'] }}')">
+    <label for="message">Message:</label>
+    <input type="text" name="message" placeholder="Enter your message here">
+    <button type="submit">Add</button>
+    <button type="button" onclick="cancelMessage('{{ user['_id'] }}')">Cancel</button>
+</form>
+
+<div class="user-messages">
+    <h3>User Messages</h3>
+    {% if user['messages'] %}
+        <ul class="messages-list">
+            {% for message in user['messages'] %}
+            <li class="message-item">
+                <p>{{ message }}</p>
+            </li>
+            {% if not loop.last %}
+                <hr>
+            {% endif %}
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p>No messages found.</p>
+    {% endif %}
+</div>
+
+<script>
+    async function editUser(event, userId) {
+        event.preventDefault();
+        const form = document.getElementById(`edit-form-${userId}`);
+        const formData = new FormData(form);
+
+        const token = getCookie('access_token_cookie');
+        console.log('token is :'+token);
+        if (!token) {
+            alert("You are not authorized.");
+            return;
+        }
+
+        try {
+            const response = await fetch(`/edit_user/${userId}`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                },
+                body: formData
+            });
+
+<!--            const result = await response.json();-->
+            if (response.ok) {
+                location.reload();
+            } else {
+                alert("Failed to update user.");
+            }
+        } catch (error) {
+            console.error("Error:", error);
+            alert("An error occurred.");
+        }
+    }
+
+    async function addMessage(event, userId) {
+        event.preventDefault();
+        const form = document.getElementById(`add-message-${userId}`);
+        const formData = new FormData(form);
+
+        const token = getCookie('access_token_cookie');
+        console.log("token"+ token)
+        if (!token) {
+            alert("You are not authorized.");
+            return;
+        }
+
+        try {
+            const response = await fetch(`/add_message/${userId}`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                },
+                body: formData
+            });
+            if (response.ok) {
+                location.reload();
+            } else {
+                alert("Failed to add message.");
+            }
+        } catch (error) {
+            console.error("Error:", error);
+            alert("An error occurred.");
+        }
+    }
+
+    function toggleEditForm(userId) {
+        const editForm = document.getElementById(`edit-form-${userId}`);
+        const messageForm = document.getElementById(`add-message-${userId}`);
+
+        if (messageForm.style.display === "block") {
+            messageForm.style.display = "none";
+        }
+
+        editForm.style.display = editForm.style.display === "none" ? "block" : "none";
+    }
+
+    function toggleAddMessageForm(userId) {
+        const messageForm = document.getElementById(`add-message-${userId}`);
+        const editForm = document.getElementById(`edit-form-${userId}`);
+
+        if (editForm.style.display === "block") {
+            editForm.style.display = "none";
+        }
+
+        messageForm.style.display = messageForm.style.display === "none" ? "block" : "none";
+    }
+
+    function cancelEdit(userId) {
+        const editForm = document.getElementById('edit-form-${userId}');
+        editForm.style.display = "none";
+    }
+
+    function cancelMessage(userId) {
+        const messageForm = document.getElementById('add-message-${userId}');
+        messageForm.style.display = "none";
+    }
+    function getCookie(name) {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop().split(`;`).shift();
+    return null;
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,22 @@
+{% extends "index.html" %}
+{% block content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='user_posts.css') }}">
+
+<div class="user-posts">
+    <h2>User Posts</h2>
+    {% for user in user_posts %}
+    <div class="user-section">
+        <h3>{{ user.username }}</h3>
+        {% if user.messages %}
+        <ul>
+            {% for message in user.messages %}
+            <li>{{ message }}</li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <p>No messages available for this user.</p>
+        {% endif %}
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

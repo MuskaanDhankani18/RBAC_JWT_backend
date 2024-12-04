@@ -1,0 +1,19 @@
+{% extends "index.html" %}
+{% block content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='login.css') }}">
+<h2>Login to Your Account</h2>
+<form method="POST" action="{{ url_for('login') }}">
+    <label for="email">Email:</label>
+    <input type="email" name="email" value="anu@gmail.com"><br>
+
+    <label for="password">Password:</label>
+    <input type="password" name="password" value="anu123"><br>
+
+    <button type="submit">Login</button>
+</form>
+<div class="centered-text">
+    <p>New User? <a href="{{ url_for('register') }}">Register here</a>.</p>
+</div>
+{% endblock %}
+
+

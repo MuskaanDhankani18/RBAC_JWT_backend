@@ -1,0 +1,75 @@
+{% extends "index.html" %}
+{% block content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='admin.css') }}">
+<div class="navbar">
+   <h1>Manage Users</h1>
+</div>
+
+<div class="filters">
+    <form method="GET" action="{{ url_for('admin_search') }}">
+        <input type="text" name="query" placeholder="Search by username or email" value="{{ search_query }}" />
+        <select name="role">
+            <option value="">All Roles</option>
+            <option value="Admin" {% if role_filter == "Admin" %}selected{% endif %}>Admin</option>
+            <option value="Moderator" {% if role_filter == "Moderator" %}selected{% endif %}>Moderator</option>
+            <option value="User" {% if role_filter == "User" %}selected{% endif %}>User</option>
+        </select>
+        <button type="submit">Search</button>
+    </form>
+</div>
+
+
+{% for user in users %}
+<div class="user-card">
+    <p>Username: {{ user['username'] }}</p>
+    <p>Email: {{ user['email'] }}</p>
+    <p>Role: {{ user['role'] }}</p>
+    <button onclick="toggleEditForm('{{ user['_id'] }}')">Edit</button>
+    <button onclick="deleteUser('{{ user['_id'] }}')">Delete</button>
+
+    <!-- Hidden form -->
+    <form id="edit-form-{{ user['_id'] }}" action="{{ url_for('edit_user', user_id=user['_id']) }}" method="POST" style="display: none;">
+        <label for="role">Role:</label>
+        <input type="text" name="role" value="{{ user['role'] }}">
+        <button type="submit">Update</button>
+        <button type="button" onclick="toggleEditForm('{{ user['_id'] }}')">Cancel</button>
+    </form>
+</div>
+<hr>
+{% endfor %}
+
+<script>
+    function toggleEditForm(userId) {
+        const form = document.getElementById(`edit-form-${userId}`);
+        if (form.style.display === "none") {
+            form.style.display = "block";
+        } else {
+            form.style.display = "none";
+        }
+    }
+
+    function deleteUser(userId) {
+        if (confirm("Are you sure you want to delete this user?")) {
+            fetch(`/delete_user/${userId}`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    alert("User deleted successfully!");
+                    location.reload(); // Refresh the page to reflect changes
+                } else {
+                    alert("Failed to delete the user.");
+                }
+            })
+            .catch(error => {
+                console.error("Error deleting user:", error);
+                alert("An error occurred while deleting the user.");
+            });
+        }
+    }
+</script>
+{% endblock %}

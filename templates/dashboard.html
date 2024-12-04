@@ -1,0 +1,37 @@
+{% extends "index.html" %}
+{% block content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='dashboard.css') }}">
+
+<div class="navbar">
+    <h1>Welcome to Your Dashboard, {{ username }}!</h1>
+</div>
+
+<div class="content">
+    <!-- Display different panels based on user role -->
+    {% if role == "Admin" %}
+    <div class="admin-panel">
+        <h2>Admin Panel</h2>
+        <p>Manage users, view system stats, and configure the app.</p>
+        <a href="{{ url_for('admin_panel') }}">Go to Admin Dashboard</a>
+    </div>
+    {% endif %}
+
+    {% if role == "Moderator" %}
+    <div class="moderator-panel">
+        <h2>Moderator Panel</h2>
+        <p>Manage content, approve posts, and moderate the community.</p>
+        <a href="{{ url_for('moderator_panel') }}">Show Activities</a>
+        <br>
+        <a href="{{ url_for('user_posts') }}">User Posts</a>
+    </div>
+    {% endif %}
+
+    {% if role == "User" %}
+    <div class="user-panel">
+        <h2>User Panel</h2>
+        <p>Manage profile, add message</p>
+        <a href="{{ url_for('user_panel') }}">Go to User Dashboard</a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
