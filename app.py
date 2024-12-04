@@ -136,10 +136,12 @@ def login():
 
 
 @app.route("/logout")
-@jwt_required()
+@jwt_required(locations=["cookies"])
 def logout():
-    # JWT doesn't have a logout endpoint, but you can revoke the token on the client side.
-    return jsonify({"msg": "Successfully logged out"}), 200
+    response = make_response(redirect(url_for("home")))
+    response.delete_cookie("access_token_cookie")  # Delete the JWT cookie
+    flash("Successfully logged out!", "success")
+    return response
 
 
 @app.route("/dashboard")
@@ -206,42 +208,82 @@ def edit_user(user_id):
             return redirect(url_for("admin_panel"))
     return render_template("user.html", user=user)
 
-@app.route("/admin/manage_roles", methods=["GET", "POST"])
-@jwt_required()
-def manage_roles():
-    current_user = get_jwt_identity()
-    if current_user["role"] != "Admin":
-        flash("Unauthorized access!", "danger")
-        return redirect(url_for("dashboard"))
-
-    users = mongo.db.users.find()  # Fetch all users
-    if request.method == "POST":
-        user_id = request.form.get("user_id")
-        new_role = request.form.get("role")
-        mongo.db.users.update_one({"_id": ObjectId(user_id)}, {"$set": {"role": new_role}})
-        flash("Role updated successfully!", "success")
-
-    return render_template("manage_roles.html", users=users)
+# @app.route("/admin/manage_roles", methods=["GET", "POST"])
+# @jwt_required()
+# def manage_roles():
+#     current_user = get_jwt_identity()
+#     if current_user["role"] != "Admin":
+#         flash("Unauthorized access!", "danger")
+#         return redirect(url_for("dashboard"))
+#
+#     users = mongo.db.users.find()  # Fetch all users
+#     if request.method == "POST":
+#         user_id = request.form.get("user_id")
+#         new_role = request.form.get("role")
+#         mongo.db.users.update_one({"_id": ObjectId(user_id)}, {"$set": {"role": new_role}})
+#         flash("Role updated successfully!", "success")
+#
+#     return render_template("manage_roles.html", users=users)
 
 
 @app.route("/admin_panel")
 @jwt_required(locations=["cookies"])
 def admin_panel():
-    current_user = get_jwt_identity()
-    if current_user["role"] != "Admin":
+    claims = get_jwt()
+    if claims.get("role") != "Admin":
         flash("Unauthorized access!", "danger")
         return redirect(url_for("dashboard"))
 
     users = list(mongo.db.users.find())
     return render_template("admin.html", users=users)
 
+@app.route("/admin/search", methods=["GET"])
+@jwt_required(locations=["cookies"])
+def admin_search():
+    claims = get_jwt()
+    if claims.get("role") != "Admin":
+        flash("Access restricted to Admins only.", "danger")
+        return redirect(url_for("dashboard"))
 
+    # Get query parameters
+    search_query = request.args.get("query", "")
+    role_filter = request.args.get("role", "")
+
+    # Build query dynamically
+    query = {}
+    if search_query:
+        query["$or"] = [
+            {"username": {"$regex": search_query, "$options": "i"}},
+            {"email": {"$regex": search_query, "$options": "i"}}
+        ]
+    if role_filter:
+        query["role"] = role_filter
+
+    # Fetch results
+    users = list(mongo.db.users.find(query))
+
+    return render_template("admin.html", users=users, search_query=search_query, role_filter=role_filter)
+
+@app.route("/moderator")
+@jwt_required(locations=["headers","cookies"])
+# @permission_required()
+def moderator_panel():
+    # user = mongo.db.users.find_one({"_id": ObjectId(current_user.id)})
+    claims = get_jwt()
+    if claims.get("role") != "Moderator":
+        flash("Unauthorized access!", "danger")
+        return redirect(url_for("dashboard"))
+
+    activities = mongo.db.logs_activity.find().sort("timestamp", -1).limit(100)
+
+    return render_template("moderator.html", activities=activities)
 
 @app.route("/user_posts")
-@jwt_required()
+@jwt_required(locations=["cookies"])
 def user_posts():
     current_user = get_jwt_identity()
-    if current_user["role"] != "Moderator":
+    claims = get_jwt()
+    if claims["role"] != "Moderator":
         flash("Access restricted to Moderators only.", "danger")
         return redirect(url_for("dashboard"))
 

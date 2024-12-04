@@ -55,6 +55,17 @@
 </div>
 
 <script>
+     function toggleEditForm(userId) {
+        const editForm = document.getElementById(`edit-form-${userId}`);
+        const messageForm = document.getElementById(`add-message-${userId}`);
+
+        if (messageForm.style.display === "block") {
+            messageForm.style.display = "none";
+        }
+
+        editForm.style.display = editForm.style.display === "none" ? "block" : "none";
+    }
+
     async function editUser(event, userId) {
         event.preventDefault();
         const form = document.getElementById(`edit-form-${userId}`);
@@ -75,8 +86,6 @@
                 },
                 body: formData
             });
-
-<!--            const result = await response.json();-->
             if (response.ok) {
                 location.reload();
             } else {
@@ -119,16 +128,6 @@
         }
     }
 
-    function toggleEditForm(userId) {
-        const editForm = document.getElementById(`edit-form-${userId}`);
-        const messageForm = document.getElementById(`add-message-${userId}`);
-
-        if (messageForm.style.display === "block") {
-            messageForm.style.display = "none";
-        }
-
-        editForm.style.display = editForm.style.display === "none" ? "block" : "none";
-    }
 
     function toggleAddMessageForm(userId) {
         const messageForm = document.getElementById(`add-message-${userId}`);

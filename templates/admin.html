@@ -28,7 +28,7 @@
     <button onclick="deleteUser('{{ user['_id'] }}')">Delete</button>
 
     <!-- Hidden form -->
-    <form id="edit-form-{{ user['_id'] }}" action="{{ url_for('edit_user', user_id=user['_id']) }}" method="POST" style="display: none;">
+    <form id="edit-form-{{ user['_id'] }}" onsubmit="return editUser(event, '{{ user['_id'] }}')">
         <label for="role">Role:</label>
         <input type="text" name="role" value="{{ user['role'] }}">
         <button type="submit">Update</button>
@@ -40,12 +40,8 @@
 
 <script>
     function toggleEditForm(userId) {
-        const form = document.getElementById(`edit-form-${userId}`);
-        if (form.style.display === "none") {
-            form.style.display = "block";
-        } else {
-            form.style.display = "none";
-        }
+        const editForm = document.getElementById(`edit-form-${userId}`);
+          editForm.style.display = editForm.style.display === "none" ? "block" : "none";
     }
 
     function deleteUser(userId) {
@@ -70,6 +66,49 @@
                 alert("An error occurred while deleting the user.");
             });
         }
+    }
+
+    async function editUser(event, userId) {
+        event.preventDefault();
+        const form = document.getElementById(`edit-form-${userId}`);
+        const formData = new FormData(form);
+
+        const token = getCookie('access_token_cookie');
+        console.log('token is :'+token);
+        if (!token) {
+            alert("You are not authorized.");
+            return;
+        }
+
+        try {
+            const response = await fetch(`/edit_user/${userId}`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                },
+                body: formData
+            });
+            if (response.ok) {
+                location.reload();
+            } else {
+                alert("Failed to update user.");
+            }
+        } catch (error) {
+            console.error("Error:", error);
+            alert("An error occurred.");
+        }
+    }
+
+     function cancelEdit(userId) {
+        const editForm = document.getElementById('edit-form-${userId}');
+        editForm.style.display = "none";
+    }
+
+    function getCookie(name) {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop().split(`;`).shift();
+    return null;
     }
 </script>
 {% endblock %}
