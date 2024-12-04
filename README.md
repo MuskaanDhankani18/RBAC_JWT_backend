@@ -21,5 +21,5 @@
       * Filter: Admin can search any username or email and role by using the search filter functionality. 
     - For Moderator Role:
       * Manage Activities: Moderator can view all logs of login, logout and page navigations of all users but not admin.
-        * User Posts: Moderator can view all the messages posts by all the users to review.
+      * User Posts: Moderator can view all the messages posts by all the users to review.
   
