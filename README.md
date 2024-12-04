@@ -16,10 +16,10 @@
     - For User Role: 
       * Edit User: User can update their existing details.
       * Add Message: User can post messages and view on the same page.
-     # For Admin Role:
-            * Manage User: Admin can edit and delete user.
-            * Filter: Admin can search any username or email and role by using the search filter functionality. 
-        # For Moderator Role:
-            * Manage Activities: Moderator can view all logs of login, logout and page navigations of all users but not admin.
-            * User Posts: Moderator can view all the messages posts by all the users to review.
+    - For Admin Role:
+      * Manage User: Admin can edit and delete user.
+      * Filter: Admin can search any username or email and role by using the search filter functionality. 
+    - For Moderator Role:
+      * Manage Activities: Moderator can view all logs of login, logout and page navigations of all users but not admin.
+        * User Posts: Moderator can view all the messages posts by all the users to review.
   
