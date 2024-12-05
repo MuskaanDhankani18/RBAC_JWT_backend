@@ -28,7 +28,7 @@
     <button onclick="deleteUser('{{ user['_id'] }}')">Delete</button>
 
     <!-- Hidden form -->
-    <form id="edit-form-{{ user['_id'] }}" onsubmit="return editUser(event, '{{ user['_id'] }}')">
+    <form id="edit-form-{{ user['_id'] }}" onsubmit="return editUser(event, '{{ user['_id'] }}')" style="display: none;">
         <label for="role">Role:</label>
         <input type="text" name="role" value="{{ user['role'] }}">
         <button type="submit">Update</button>

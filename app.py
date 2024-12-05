@@ -2,7 +2,8 @@ from functools import wraps
 from flask import Flask, render_template, redirect, url_for, flash, request, jsonify, session, make_response
 from flask_bcrypt import Bcrypt
 from flask_pymongo import PyMongo
-from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity, get_jwt
+from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity, get_jwt, \
+    unset_jwt_cookies
 from bson.objectid import ObjectId
 from datetime import datetime, timedelta
 
@@ -147,14 +148,25 @@ def login():
     return render_template("login.html", form=form)
 
 
-@app.route("/logout")
-@jwt_required(locations=["cookies"])
-def logout():
-    response = make_response(redirect(url_for("home")))
-    response.delete_cookie("access_token_cookie")  # Delete the JWT cookie
-    flash("Successfully logged out!", "success")
-    return response
+# @app.route("/logout")
+# @jwt_required(locations=["cookies"])
+# def logout():
+#     response = make_response(redirect(url_for("home")))
+#     response.delete_cookie("access_token_cookie")  # Delete the JWT cookie
+#     flash("Successfully logged out!", "success")
+#     return response
 
+
+@app.route("/logout")
+def logout():
+    # Prepare response to redirect to the home page
+    response = make_response(redirect(url_for("home")))
+    # Unset JWT cookies
+    unset_jwt_cookies(response)
+    # Add a flash message
+    flash("Successfully logged out!", "success")
+
+    return response
 
 @app.route("/dashboard")
 @jwt_required(locations=["cookies"])
@@ -210,15 +222,21 @@ def edit_user(user_id):
             email = request.form.get("email")
             username = request.form.get("username")
             mongo.db.users.update_one({"_id": ObjectId(user_id)}, {"$set": {"email": email,"username": username}})
+
             flash("User Details updated successfully!", "success")
             return redirect(url_for("user_panel"))
 
         elif user["role"] == "Admin":
             new_role = request.form.get("role")
             mongo.db.users.update_one({"_id": ObjectId(user_id)}, {"$set": {"role": new_role}})
+
+            log_activity(
+                user_id = current_user,
+                username = user["username"],
+                alert=f"Changed role to {new_role}"
+            )
             flash("User Role updated successfully!", "success")
             return redirect(url_for("admin_panel"))
-
     return render_template("user.html", user=user)
 
 
