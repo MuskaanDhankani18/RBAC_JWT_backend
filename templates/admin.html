@@ -49,6 +49,7 @@
             fetch(`/delete_user/${userId}`, {
                 method: "POST",
                 headers: {
+                    "Authorization": `Bearer ${getCookie('access_token_cookie')}`,
                     "Content-Type": "application/json",
                 },
             })

@@ -228,24 +228,20 @@ def delete_user(user_id):
     current_user = get_jwt_identity()
     user = mongo.db.users.find_one({"_id": ObjectId(current_user)})
 
-    if user.get("role") != "Admin":
-        flash("Unauthorized access! Only Admins can delete users.", "danger")
-        return redirect(url_for("dashboard"))
+    if not user or user.get("role") != "Admin":
+        return jsonify({"success": False, "message": "Unauthorized access! Only Admins can delete users."}), 403
 
     user_to_delete = mongo.db.users.find_one({"_id": ObjectId(user_id)})
+    if not user_to_delete:
+        return jsonify({"success": False, "message": "User not found."}), 404
 
-    if user_to_delete:
-        log_activity(user_id=str(current_user), username=user["username"], alert=f"Admin deleted user {user_to_delete['username']}")
     result = mongo.db.users.delete_one({"_id": ObjectId(user_id)})
 
     if result.deleted_count > 0:
-        flash("User deleted successfully!", "success")
-        return redirect(url_for("admin_panel"))
-
+        log_activity(user_id=str(current_user), username=user["username"], alert=f"Admin deleted user {user_to_delete['username']}")
+        return jsonify({"success": True, "message": "User deleted successfully!"})
     else:
-        flash("User not found. Deletion failed.", "danger")
-        return redirect(url_for("admin_panel"))
-
+        return jsonify({"success": False, "message": "Deletion failed."}), 400
 
 
 # @app.route("/admin/manage_roles", methods=["GET", "POST"])
