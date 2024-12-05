@@ -4,10 +4,10 @@
 <h2>Login to Your Account</h2>
 <form method="POST" action="{{ url_for('login') }}">
     <label for="email">Email:</label>
-    <input type="email" name="email" value="anita@gmail.com"><br>
+    {{ form.email() }}<br>
 
     <label for="password">Password:</label>
-    <input type="password" name="password" value="anita12"><br>
+    {{ form.password() }}<br>
 
     <button type="submit">Login</button>
 </form>

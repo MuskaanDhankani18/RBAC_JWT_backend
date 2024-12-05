@@ -5,6 +5,8 @@ from flask_pymongo import PyMongo
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity, get_jwt
 from bson.objectid import ObjectId
 from datetime import datetime, timedelta
+
+from sqlalchemy.sql.functions import current_user
 from wtforms import Form, StringField, PasswordField, SubmitField, validators
 from wtforms.validators import DataRequired, Length, Email
 from flask_login import LoginManager,UserMixin, login_required, login_user
@@ -44,6 +46,15 @@ def load_user(user_id):
         return User(str(user["_id"]), user.get("role"), user.get("username"))
     return None
 
+def log_activity(user_id, username, alert):
+    activity = {
+        "user_id": user_id,
+        "username": username,
+        "alert": alert,
+        "timestamp": datetime.now()
+    }
+    mongo.db.logs_activity.insert_one(activity)
+
 
 # Forms
 class RegistrationForm(Form):
@@ -72,6 +83,8 @@ def role_required(*roles):
             return f(*args, **kwargs)
         return decorated_function
     return decorator
+
+
 # Routes
 @app.route("/")
 def home():
@@ -99,14 +112,14 @@ def register():
         if mongo.db.users.find_one({"email": email}):
             flash("Username already exists. Please choose a different one.", "danger")
         else:
-            mongo.db.users.insert_one({
+            user_id = mongo.db.users.insert_one({
                 "username": username,
                 "email": email,
                 "password": password,
                 "role": role,
                 "permissions": permissions
             })
-
+            log_activity(user_id=str(user_id), username=username, alert="New user registered")
             flash("Registration successful! You can now log in.", "success")
             return redirect(url_for("login"))
 
@@ -124,8 +137,7 @@ def login():
                 identity=str(user["_id"]),
                 additional_claims={"role": user["role"], "username": user["username"]}
             )
-            print("access_token in login-- "+ access_token)
-
+            log_activity(user_id=str(user["_id"]), username=user["username"], alert="User logged in")
             resp = make_response(redirect(url_for("dashboard")))
             resp.set_cookie('access_token_cookie', access_token)  # Set secure cookie
             return resp
@@ -151,18 +163,20 @@ def dashboard():
     user_role = claims.get("role")
     username = claims.get("username")
     current_user = get_jwt_identity()
+
+    log_activity(user_id=current_user, username=username, alert="User accessed the dashboard")
+
     return render_template("dashboard.html", username=username, role=user_role)
+
 
 @app.route("/user_panel")
 @jwt_required(locations=["cookies"])
 def user_panel():
     current_user = get_jwt_identity()
-    print("current_user in user panel "+current_user)
     user = mongo.db.users.find_one({"_id": ObjectId(current_user)})
     username = user["username"]
     role = user["role"]
-    print("role"+role)
-    print("username" + username)
+
     if user["role"] != "User":
         flash("Unauthorized access!", "danger")
 
@@ -174,26 +188,23 @@ def user_panel():
 def add_message(user_id):
     current_user = get_jwt_identity()
     user = mongo.db.users.find_one({"_id": ObjectId(current_user)})
-    print("add_message")
-    # log_activity(user_id=current_user.id, username=session.get("username"), alert="User Added Message")
+
     if request.method == "POST":
         message = request.form.get("message")
-        print("message "+message)
         mongo.db.users.update_one({"_id": ObjectId(user_id)}, {"$push": {"messages": message}})
+        log_activity(user_id=str(current_user), username=user["username"], alert="Message added by user")
         flash("Message added successfully!", "success")
         return redirect(url_for("user_panel"))
+
     return render_template("user.html", user=user)
 
 
 @app.route("/edit_user/<user_id>", methods=["POST"])
 @jwt_required(locations=["headers","cookies"])
 def edit_user(user_id):
-    print("user_id"+user_id)
-    # print(request.cookies.get('access_token_cookie'))
     current_user = get_jwt_identity()
-    # print(current_user)
     user = mongo.db.users.find_one({"_id": ObjectId(current_user)})
-    # print("user "+user["username"])
+
     if request.method == "POST":
         if user["role"] == "User":
             email = request.form.get("email")
@@ -201,12 +212,41 @@ def edit_user(user_id):
             mongo.db.users.update_one({"_id": ObjectId(user_id)}, {"$set": {"email": email,"username": username}})
             flash("User Details updated successfully!", "success")
             return redirect(url_for("user_panel"))
+
         elif user["role"] == "Admin":
             new_role = request.form.get("role")
             mongo.db.users.update_one({"_id": ObjectId(user_id)}, {"$set": {"role": new_role}})
             flash("User Role updated successfully!", "success")
             return redirect(url_for("admin_panel"))
+
     return render_template("user.html", user=user)
+
+
+@app.route("/delete_user/<user_id>", methods=["POST"])
+@jwt_required(locations=["headers", "cookies"])
+def delete_user(user_id):
+    current_user = get_jwt_identity()
+    user = mongo.db.users.find_one({"_id": ObjectId(current_user)})
+
+    if user.get("role") != "Admin":
+        flash("Unauthorized access! Only Admins can delete users.", "danger")
+        return redirect(url_for("dashboard"))
+
+    user_to_delete = mongo.db.users.find_one({"_id": ObjectId(user_id)})
+
+    if user_to_delete:
+        log_activity(user_id=str(current_user), username=user["username"], alert=f"Admin deleted user {user_to_delete['username']}")
+    result = mongo.db.users.delete_one({"_id": ObjectId(user_id)})
+
+    if result.deleted_count > 0:
+        flash("User deleted successfully!", "success")
+        return redirect(url_for("admin_panel"))
+
+    else:
+        flash("User not found. Deletion failed.", "danger")
+        return redirect(url_for("admin_panel"))
+
+
 
 # @app.route("/admin/manage_roles", methods=["GET", "POST"])
 # @jwt_required()
@@ -237,6 +277,7 @@ def admin_panel():
     users = list(mongo.db.users.find())
     return render_template("admin.html", users=users)
 
+
 @app.route("/admin/search", methods=["GET"])
 @jwt_required(locations=["cookies"])
 def admin_search():
@@ -264,6 +305,7 @@ def admin_search():
 
     return render_template("admin.html", users=users, search_query=search_query, role_filter=role_filter)
 
+
 @app.route("/moderator")
 @jwt_required(locations=["headers","cookies"])
 # @permission_required()
@@ -277,6 +319,7 @@ def moderator_panel():
     activities = mongo.db.logs_activity.find().sort("timestamp", -1).limit(100)
 
     return render_template("moderator.html", activities=activities)
+
 
 @app.route("/user_posts")
 @jwt_required(locations=["cookies"])

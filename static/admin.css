@@ -122,6 +122,7 @@ form button[type="button"]:hover {
     background-color: #c82333;
 }
 
+
 /* Responsive design */
 @media (max-width: 768px) {
     .container {
