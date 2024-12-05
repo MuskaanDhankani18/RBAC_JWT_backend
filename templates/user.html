@@ -140,12 +140,12 @@
     }
 
     function cancelEdit(userId) {
-        const editForm = document.getElementById('edit-form-${userId}');
+        const editForm = document.getElementById(`edit-form-${userId}`);
         editForm.style.display = "none";
     }
 
     function cancelMessage(userId) {
-        const messageForm = document.getElementById('add-message-${userId}');
+        const messageForm = document.getElementById(`add-message-${userId}`);
         messageForm.style.display = "none";
     }
     function getCookie(name) {

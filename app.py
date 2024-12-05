@@ -6,8 +6,6 @@ from flask_jwt_extended import JWTManager, create_access_token, jwt_required, ge
     unset_jwt_cookies
 from bson.objectid import ObjectId
 from datetime import datetime, timedelta
-
-from sqlalchemy.sql.functions import current_user
 from wtforms import Form, StringField, PasswordField, SubmitField, validators
 from wtforms.validators import DataRequired, Length, Email
 from flask_login import LoginManager,UserMixin, login_required, login_user
@@ -89,7 +87,14 @@ def role_required(*roles):
 # Routes
 @app.route("/")
 def home():
-    return render_template("home.html")
+    print("starting point")
+    current_user = None
+    try:
+        current_user = get_jwt_identity()  # Get user information from the JWT token
+    except Exception as e:
+        print(f"Error getting JWT identity: {e}")
+    print(current_user)
+    return render_template("home.html", current_user=current_user)
 
 
 @app.route("/profile")
@@ -141,6 +146,7 @@ def login():
             log_activity(user_id=str(user["_id"]), username=user["username"], alert="User logged in")
             resp = make_response(redirect(url_for("dashboard")))
             resp.set_cookie('access_token_cookie', access_token)  # Set secure cookie
+            session['logged_in']='True'
             return resp
             #return redirect(url_for("dashboard"))
         else:
@@ -165,7 +171,7 @@ def logout():
     unset_jwt_cookies(response)
     # Add a flash message
     flash("Successfully logged out!", "success")
-
+    session['logged_in'] = 'False'
     return response
 
 @app.route("/dashboard")
