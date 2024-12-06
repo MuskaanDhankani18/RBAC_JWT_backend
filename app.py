@@ -5,10 +5,10 @@ from flask_pymongo import PyMongo
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity, get_jwt, \
     unset_jwt_cookies
 from bson.objectid import ObjectId
-from datetime import datetime, timedelta
+from datetime import datetime
 from wtforms import Form, StringField, PasswordField, SubmitField, validators
-from wtforms.validators import DataRequired, Length, Email
-from flask_login import LoginManager,UserMixin, login_required, login_user
+from wtforms.validators import DataRequired, Email
+from flask_login import LoginManager,UserMixin
 
 app = Flask(__name__)
 login_manager = LoginManager()
@@ -55,7 +55,9 @@ def log_activity(user_id, username, alert):
     mongo.db.logs_activity.insert_one(activity)
 
 
+#-----------
 # Forms
+#-----------
 class RegistrationForm(Form):
     username = StringField("Username", [validators.Length(min=4, max=25)])
     email = StringField('Email', validators=[DataRequired(), Email()])
@@ -84,16 +86,16 @@ def role_required(*roles):
     return decorator
 
 
+#---------------
 # Routes
+#--------------
 @app.route("/")
 def home():
-    print("starting point")
     current_user = None
     try:
-        current_user = get_jwt_identity()  # Get user information from the JWT token
+        current_user = get_jwt_identity()
     except Exception as e:
         print(f"Error getting JWT identity: {e}")
-    print(current_user)
     return render_template("home.html", current_user=current_user)
 
 
@@ -125,7 +127,9 @@ def register():
                 "role": role,
                 "permissions": permissions
             })
+
             log_activity(user_id=str(user_id), username=username, alert="New user registered")
+
             flash("Registration successful! You can now log in.", "success")
             return redirect(url_for("login"))
 
@@ -138,38 +142,26 @@ def login():
     if request.method == "POST" and form.validate():
         user = mongo.db.users.find_one({"email": form.email.data})
         if user and bcrypt.check_password_hash(user["password"], form.password.data):
-            #access_token = create_access_token(identity=user["username"])
             access_token = create_access_token(
                 identity=str(user["_id"]),
                 additional_claims={"role": user["role"], "username": user["username"]}
             )
+
             log_activity(user_id=str(user["_id"]), username=user["username"], alert="User logged in")
+
             resp = make_response(redirect(url_for("dashboard")))
-            resp.set_cookie('access_token_cookie', access_token)  # Set secure cookie
+            resp.set_cookie('access_token_cookie', access_token)
             session['logged_in']='True'
             return resp
-            #return redirect(url_for("dashboard"))
         else:
             flash("Invalid email or password.", "danger")
     return render_template("login.html", form=form)
 
 
-# @app.route("/logout")
-# @jwt_required(locations=["cookies"])
-# def logout():
-#     response = make_response(redirect(url_for("home")))
-#     response.delete_cookie("access_token_cookie")  # Delete the JWT cookie
-#     flash("Successfully logged out!", "success")
-#     return response
-
-
 @app.route("/logout")
 def logout():
-    # Prepare response to redirect to the home page
     response = make_response(redirect(url_for("home")))
-    # Unset JWT cookies
     unset_jwt_cookies(response)
-    # Add a flash message
     flash("Successfully logged out!", "success")
     session['logged_in'] = 'False'
     return response
@@ -210,7 +202,9 @@ def add_message(user_id):
     if request.method == "POST":
         message = request.form.get("message")
         mongo.db.users.update_one({"_id": ObjectId(user_id)}, {"$push": {"messages": message}})
+
         log_activity(user_id=str(current_user), username=user["username"], alert="Message added by user")
+
         flash("Message added successfully!", "success")
         return redirect(url_for("user_panel"))
 
@@ -241,6 +235,7 @@ def edit_user(user_id):
                 username = user["username"],
                 alert=f"Changed role to {new_role}"
             )
+
             flash("User Role updated successfully!", "success")
             return redirect(url_for("admin_panel"))
     return render_template("user.html", user=user)
@@ -268,24 +263,6 @@ def delete_user(user_id):
         return jsonify({"success": False, "message": "Deletion failed."}), 400
 
 
-# @app.route("/admin/manage_roles", methods=["GET", "POST"])
-# @jwt_required()
-# def manage_roles():
-#     current_user = get_jwt_identity()
-#     if current_user["role"] != "Admin":
-#         flash("Unauthorized access!", "danger")
-#         return redirect(url_for("dashboard"))
-#
-#     users = mongo.db.users.find()  # Fetch all users
-#     if request.method == "POST":
-#         user_id = request.form.get("user_id")
-#         new_role = request.form.get("role")
-#         mongo.db.users.update_one({"_id": ObjectId(user_id)}, {"$set": {"role": new_role}})
-#         flash("Role updated successfully!", "success")
-#
-#     return render_template("manage_roles.html", users=users)
-
-
 @app.route("/admin_panel")
 @jwt_required(locations=["cookies"])
 def admin_panel():
@@ -306,11 +283,9 @@ def admin_search():
         flash("Access restricted to Admins only.", "danger")
         return redirect(url_for("dashboard"))
 
-    # Get query parameters
     search_query = request.args.get("query", "")
     role_filter = request.args.get("role", "")
 
-    # Build query dynamically
     query = {}
     if search_query:
         query["$or"] = [
@@ -320,7 +295,6 @@ def admin_search():
     if role_filter:
         query["role"] = role_filter
 
-    # Fetch results
     users = list(mongo.db.users.find(query))
 
     return render_template("admin.html", users=users, search_query=search_query, role_filter=role_filter)
@@ -330,7 +304,6 @@ def admin_search():
 @jwt_required(locations=["headers","cookies"])
 # @permission_required()
 def moderator_panel():
-    # user = mongo.db.users.find_one({"_id": ObjectId(current_user.id)})
     claims = get_jwt()
     if claims.get("role") != "Moderator":
         flash("Unauthorized access!", "danger")
